@@ -13,8 +13,13 @@ import statsmodels.formula.api as smf
 @dataclass
 class RCTspec:
     outcome: str = "y_post"
-    treatment:
+    treatment: str = "treat" 
+    baseline: str = "y_pre"
+    unit_id: str = "id"
 
+def balance_check(df: pd.DataFrame, spec: RCTSpec)
+
+# [CONTINUE FROM HERE]
 
 
 
@@ -76,7 +81,62 @@ if __name__ == "__main__":
 
 
 
+### RDD ###
 
+
+#[CODE TO BE WRITTEN] 
+
+import numpy as np
+import pandas as pd
+import statsmodels.formula.api as smf
+
+np.random.seed(1)
+n = 300
+score = np.random.uniform(30, 70, n)
+cutoff = 50
+treat = (score >= cutoff).astype(int)
+y = 10 + 0.4 * score + 5 * treat + np.random.normal(0, 2, n)
+
+df = pd.DataFrame({"y": y, "score": score, "treat": treat})
+df["running"] = df["score"] - cutoff
+
+band = 8
+local = df[np.abs(df["running"]) <= band]
+
+
+# [CONTINUE FROM HERE]
+
+
+
+
+
+
+
+
+
+
+ #[CODE TO IMITATE]
+
+import numpy as np
+import pandas as pd
+import statsmodels.formula.api as smf
+
+np.random.seed(1)
+n = 300
+score = np.random.uniform(30, 70, n)      # running variable
+cutoff = 50
+treat = (score >= cutoff).astype(int)     # treatment assignment at cutoff
+y = 10 + 0.4 * score + 5 * treat + np.random.normal(0, 2, n)
+
+df = pd.DataFrame({"y": y, "score": score, "treat": treat})
+df["running"] = df["score"] - cutoff
+
+band = 8                                  # use data near cutoff
+local = df[np.abs(df["running"]) <= band]
+
+model = smf.ols("y ~ treat + running + treat:running", data=local).fit()
+print(model.summary().tables[1])
+print("Estimated jump at cutoff (RDD effect):", round(model.params["treat"], 3))
 
 
 
@@ -102,7 +162,7 @@ units = ["A", "B", "C", "D", "E"]   # A is treated
 times = np.arange(1, 21)
 t0 = 12  # treatment starts at time 12
 
-
+# [CONTINUE FROM HERE] 
 
 
 
