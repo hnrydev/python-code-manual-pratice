@@ -11,16 +11,21 @@ import pandas as pd
 import statsmodels.formula.api as smf
 
 @dataclass
-class RCTspec:
+class RCTSpec:
     outcome: str = "y_post"
     treatment: str = "treat" 
     baseline: str = "y_pre"
     unit_id: str = "id"
 
-def balance_check(df: pd.DataFrame, spec: RCTSpec)
+def balance_check(df: pd.DataFrame, spec: RCTSpec) -> pd.DataFrame:
+    rows = []
+    for col in [spec.baseline]:
+        m_t = df.loc[df[spec.treatment] == 1, col].mean()
+        m_c = df.loc[df[spec.treatment] == 0, col].mean()
+        rows.append({"variable":col, "mean_treat": m_t, "mean_control": m_c, "diff": m_t - m_c})
+    return pd.DataFrame(rows)
 
-# [CONTINUE FROM HERE]
-
+    # [CODE FROM HERE]
 
 
 
@@ -151,7 +156,7 @@ print("Estimated jump at cutoff (RDD effect):", round(model.params["treat"], 3))
 #[CODE TO BE WRITTEN] 
 
 
-import nump as np
+import numpy as np
 import pandas as pd
 from scipy.optimize import minimize
 
@@ -235,3 +240,133 @@ for c, w in zip(controls, w_hat):
 
 print("\nAverage post-treatment effect (simple ATT path average):")
 print(gap[times >= t0].mean())
+
+
+
+
+
+
+### Language Modeling ###
+
+#[CODE TO BE WRITTEN] 
+
+import torch
+import torch.nn as nn
+from torch.utils.data import DataLoader, Dataset
+
+text = "hello world " * 200  # replace with your own text
+
+
+
+
+
+
+# [CODE TO IMITATE]
+
+# character_lm_minimal.py — minimal character-level language model (PyTorch)
+import torch
+import torch.nn as nn
+from torch.utils.data import Dataset, DataLoader
+
+# Training text — replace with a file read or larger corpus for better results
+text = "hello world " * 200
+chars = sorted(set(text))
+stoi = {c: i for i, c in enumerate(chars)}
+itos = {i: c for i, c in enumerate(chars)}
+vocab_size = len(chars)
+
+
+class CharDataset(Dataset):
+    """Sliding windows: predict next character at each position."""
+
+    def __init__(self, text, block_size=8):
+        self.data = [stoi[c] for c in text]
+        self.block_size = block_size
+
+    def __len__(self):
+        return len(self.data) - self.block_size
+
+    def __getitem__(self, i):
+        chunk = self.data[i : i + self.block_size + 1]
+        x = torch.tensor(chunk[:-1], dtype=torch.long)
+        y = torch.tensor(chunk[1:], dtype=torch.long)
+        return x, y
+
+
+class TinyLM(nn.Module):
+    """Embedding -> GRU -> linear head over vocabulary."""
+
+    def __init__(self, vocab_size, n_embd=32, n_hidden=64):
+        super().__init__()
+        self.emb = nn.Embedding(vocab_size, n_embd)
+        self.rnn = nn.GRU(n_embd, n_hidden, batch_first=True)
+        self.head = nn.Linear(n_hidden, vocab_size)
+
+    def forward(self, x, h=None):
+        e = self.emb(x)
+        out, h = self.rnn(e, h)
+        logits = self.head(out)
+        return logits, h
+
+
+def train():
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    block_size = 16
+    batch_size = 32
+    epochs = 300
+    lr = 1e-2
+
+    ds = CharDataset(text, block_size)
+    dl = DataLoader(ds, batch_size=batch_size, shuffle=True, drop_last=True)
+
+    model = TinyLM(vocab_size).to(device)
+    opt = torch.optim.AdamW(model.parameters(), lr=lr)
+    loss_fn = nn.CrossEntropyLoss()
+
+    model.train()
+    for epoch in range(epochs):
+        total = 0.0
+        for x, y in dl:
+            x, y = x.to(device), y.to(device)
+            logits, _ = model(x)
+            loss = loss_fn(logits.reshape(-1, vocab_size), y.reshape(-1))
+            opt.zero_grad()
+            loss.backward()
+            opt.step()
+            total += loss.item()
+        if (epoch + 1) % 50 == 0:
+            print(f"epoch {epoch + 1}  loss {total / len(dl):.4f}")
+
+    return model
+
+
+@torch.no_grad()
+def sample(model, start="h", n=80, temperature=0.9):
+    """Autoregressive sampling from the trained model."""
+    model.eval()
+    device = next(model.parameters()).device
+    h = None
+    ids = [stoi[c] for c in start if c in stoi]
+    if not ids:
+        ids = [0]
+    out = ids.copy()
+    x = torch.tensor([ids], dtype=torch.long, device=device)
+
+    for _ in range(n):
+        logits, h = model(x, h)
+        # Higher temperature -> flatter distribution -> more random tokens
+        logits = logits[:, -1, :] / temperature
+        probs = torch.softmax(logits, dim=-1)
+        next_id = torch.multinomial(probs, 1).item()
+        out.append(next_id)
+        x = torch.tensor([[next_id]], dtype=torch.long, device=device)
+    return "".join(itos[i] for i in out)
+
+
+if __name__ == "__main__":
+    m = train()
+    print(sample(m, start="h", n=100))
+
+
+
+
