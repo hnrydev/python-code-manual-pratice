@@ -25,7 +25,14 @@ def balance_check(df: pd.DataFrame, spec: RCTSpec) -> pd.DataFrame:
         rows.append({"variable":col, "mean_treat": m_t, "mean_control": m_c, "diff": m_t - m_c})
     return pd.DataFrame(rows)
 
-    # [CODE FROM HERE]
+def estimate_itt(df: pd.DataFrame, spec: RCTSpec):
+    rows = []
+    for col in [spec.baseline]:
+        m_t = df.loc[df[spec.treatment] == 1, col].mean()
+        n_t = df.loc[df[spec.treatment] == 1, col].count()
+
+
+[CODE FROM HERE]
 
 
 
